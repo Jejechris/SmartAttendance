@@ -54,6 +54,31 @@ class User extends Authenticatable
         return $this->hasMany(AttendanceRecord::class, 'student_id');
     }
 
+    public function leaveRequests(): HasMany
+    {
+        return $this->hasMany(LeaveRequest::class, 'student_id');
+    }
+
+    public function decidedLeaveRequests(): HasMany
+    {
+        return $this->hasMany(LeaveRequest::class, 'decided_by');
+    }
+
+    public function studentViolations(): HasMany
+    {
+        return $this->hasMany(StudentViolation::class, 'student_id');
+    }
+
+    public function createdViolations(): HasMany
+    {
+        return $this->hasMany(StudentViolation::class, 'created_by');
+    }
+
+    public function activityLogs(): HasMany
+    {
+        return $this->hasMany(ActivityLog::class, 'actor_id');
+    }
+
     public function isTeacher(): bool
     {
         return in_array($this->role, ['teacher', 'school_admin'], true);
@@ -62,5 +87,15 @@ class User extends Authenticatable
     public function isStudent(): bool
     {
         return $this->role === 'student';
+    }
+
+    public function isSchoolAdmin(): bool
+    {
+        return $this->role === 'school_admin';
+    }
+
+    public function canManageDiscipline(): bool
+    {
+        return in_array($this->role, ['teacher', 'school_admin'], true);
     }
 }

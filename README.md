@@ -26,6 +26,20 @@ Implementasi ini berisi modul absensi QR dinamis untuk SaaS sekolah (multi-tenan
 9. Command simulasi 36 siswa untuk uji kelas
 10. Auto-close sesi lewat scheduler command
 11. Feature test dasar flow absensi
+12. Dashboard kepala sekolah (kategori A):
+- kehadiran hari ini (%),
+- tren mingguan,
+- kelas paling disiplin,
+- ringkasan izin/pelanggaran.
+13. Disiplin & kontrol (kategori C):
+- pengajuan izin siswa + approval/reject,
+- pencatatan poin pelanggaran,
+- riwayat keterlambatan.
+14. Profesional & trust (kategori D):
+- branding sekolah (nama tampil, logo, timezone),
+- role management sederhana,
+- activity log readonly (audit trail),
+- digital student ID (QR verifikasi).
 
 ## Struktur utama file
 
@@ -74,6 +88,29 @@ Semua endpoint di bawah middleware `auth`.
 
 - `GET /attendance/scan?sid={session_id}&t={token}`
 - `POST /attendance/check-in`
+- `GET /student/home`
+- `GET /student/id`
+- `GET /student/leave-requests`
+- `POST /student/leave-requests`
+
+### Disiplin (Guru/Admin)
+
+- `GET /discipline/leave-requests`
+- `POST /discipline/leave-requests/{leaveRequest}/decision`
+- `GET /discipline/violations`
+- `POST /discipline/violations`
+- `GET /discipline/late-history`
+
+### Admin Sekolah
+
+- `GET /admin/dashboard`
+- `GET /admin/reports/daily`
+- `GET /admin/reports/daily/export?date=YYYY-MM-DD&format=xlsx|pdf`
+- `GET /admin/settings/branding`
+- `POST /admin/settings/branding`
+- `GET /admin/settings/users`
+- `POST /admin/settings/users/{user}/role`
+- `GET /admin/activity-logs`
 
 ## Cara kerja QR dinamis
 
@@ -146,6 +183,14 @@ npm run dev
 ```
 
 Buka `http://127.0.0.1:8000/login`.
+
+Jika Windows menampilkan `php is not recognized`, jalankan salah satu:
+
+```powershell
+C:\Program Files\PHP\php.exe artisan serve
+```
+
+atau tambahkan folder PHP ke `PATH` lalu buka terminal baru.
 
 Akun demo:
 

@@ -25,6 +25,17 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $school = null;
+        if ($request->user()?->school) {
+            $school = [
+                'id' => $request->user()->school->id,
+                'name' => $request->user()->school->name,
+                'display_name' => $request->user()->school->display_name,
+                'logo_url' => $request->user()->school->logo_url,
+                'timezone' => $request->user()->school->timezone,
+            ];
+        }
+
         return array_merge(parent::share($request), [
             'auth' => [
                 'user' => $request->user()
@@ -36,6 +47,7 @@ class HandleInertiaRequests extends Middleware
                     ]
                     : null,
             ],
+            'school' => $school,
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),

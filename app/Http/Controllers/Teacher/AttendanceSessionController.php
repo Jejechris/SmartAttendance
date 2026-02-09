@@ -7,6 +7,7 @@ use App\Http\Requests\Teacher\AttendanceSessionStoreRequest;
 use App\Models\AttendanceSession;
 use App\Models\SchoolClass;
 use App\Models\Subject;
+use App\Services\ActivityLogService;
 use App\Services\AttendanceException;
 use App\Services\AttendanceSessionService;
 use App\Services\AttendanceTokenService;
@@ -21,9 +22,9 @@ class AttendanceSessionController extends Controller
 {
     public function __construct(
         private readonly AttendanceSessionService $sessionService,
-        private readonly AttendanceTokenService $tokenService
-    ) {
-    }
+        private readonly AttendanceTokenService $tokenService,
+        private readonly ActivityLogService $activityLogService
+    ) {}
 
     public function index(Request $request): Response
     {
@@ -95,8 +96,8 @@ class AttendanceSessionController extends Controller
             ->where('school_id', $teacher->school_id)
             ->first();
 
-        if (!$class || !$subject) {
-            if (!$request->expectsJson()) {
+        if (! $class || ! $subject) {
+            if (! $request->expectsJson()) {
                 return back()
                     ->withInput()
                     ->withErrors(['class_id' => 'Kelas/mapel tidak ditemukan di sekolah Anda.']);
@@ -125,7 +126,21 @@ class AttendanceSessionController extends Controller
             'status' => 'draft',
         ]);
 
-        if (!$request->expectsJson()) {
+        $this->activityLogService->log(
+            schoolId: (int) $teacher->school_id,
+            actor: $teacher,
+            action: 'attendance_session.created',
+            targetType: 'attendance_session',
+            targetId: (int) $session->id,
+            meta: [
+                'class_id' => (int) $session->class_id,
+                'subject_id' => (int) $session->subject_id,
+            ],
+            ip: $request->ip(),
+            userAgent: $request->userAgent()
+        );
+
+        if (! $request->expectsJson()) {
             return redirect()
                 ->route('teacher.attendance.sessions.show', $session)
                 ->with('success', 'Sesi absensi berhasil dibuat.');
@@ -145,6 +160,16 @@ class AttendanceSessionController extends Controller
         try {
             $session = $this->findSessionForTeacher($request, $session->id);
             $opened = $this->sessionService->openSession($session, $request->user());
+
+            $this->activityLogService->log(
+                schoolId: (int) $opened->school_id,
+                actor: $request->user(),
+                action: 'attendance_session.opened',
+                targetType: 'attendance_session',
+                targetId: (int) $opened->id,
+                ip: $request->ip(),
+                userAgent: $request->userAgent()
+            );
 
             return response()->json([
                 'message' => 'Sesi dibuka.',
@@ -226,6 +251,16 @@ class AttendanceSessionController extends Controller
         try {
             $session = $this->findSessionForTeacher($request, $session->id);
             $closed = $this->sessionService->closeSessionAndMarkAlpha($session, $request->user());
+
+            $this->activityLogService->log(
+                schoolId: (int) $closed->school_id,
+                actor: $request->user(),
+                action: 'attendance_session.closed',
+                targetType: 'attendance_session',
+                targetId: (int) $closed->id,
+                ip: $request->ip(),
+                userAgent: $request->userAgent()
+            );
 
             return response()->json([
                 'message' => 'Sesi ditutup dan alpha otomatis ditandai.',

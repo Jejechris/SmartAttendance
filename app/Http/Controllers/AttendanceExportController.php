@@ -3,12 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Models\AttendanceSession;
+use App\Services\ActivityLogService;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AttendanceExportController extends Controller
 {
+    public function __construct(private readonly ActivityLogService $activityLogService) {}
+
     public function export(Request $request, AttendanceSession $session)
     {
         $this->authorizeAccess($request, $session);
@@ -20,6 +23,17 @@ class AttendanceExportController extends Controller
         ]);
 
         $format = strtolower((string) $request->query('format', 'xlsx'));
+
+        $this->activityLogService->log(
+            schoolId: (int) $session->school_id,
+            actor: $request->user(),
+            action: 'attendance_session.exported',
+            targetType: 'attendance_session',
+            targetId: (int) $session->id,
+            meta: ['format' => $format],
+            ip: $request->ip(),
+            userAgent: $request->userAgent()
+        );
 
         if ($format === 'pdf') {
             return $this->exportPdf($session);
@@ -89,6 +103,7 @@ class AttendanceExportController extends Controller
             $pdf->loadView('attendance.teacher.export_pdf', $viewData);
 
             $filename = sprintf('attendance_session_%d.pdf', $session->id);
+
             return $pdf->download($filename);
         }
 
